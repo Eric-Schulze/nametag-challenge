@@ -3,13 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/eric-schulze/self-updater/internal/init"
+	"github.com/eric-schulze/self-updater/internal/bootstrap"
 	"os"
 )
 
 func main() {
 	ctx := context.Background()
-	if err := init.Start(ctx, os.Stdout, os.Args); err != nil {
+	if err := bootstrap.Start(ctx, os.Stdout, os.Args); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}
