@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/eric-schulze/nametag-challeng/self-updater/internal/bootstrap"
+	"github.com/eric-schulze/nametag-challenge/self-updater/internal/bootstrap"
 	"os"
 )
 
