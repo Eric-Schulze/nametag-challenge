@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/eric-schulze/code_challenge/internal/init"
+	"github.com/eric-schulze/self-updater/internal/init"
 	"os"
 )
 
