@@ -1,0 +1,4 @@
+data_file_path: "./data"
+data_file_name: "countries.csv"
+minimum_log_level: 0  # 0 = Debug, 1 = Info, 2 = Warn, 3 = Error
+enable_logging: true
