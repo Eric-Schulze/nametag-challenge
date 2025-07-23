@@ -1,3 +1,8 @@
+start-server:
+	@cd updater-server ; \
+	go build ; \
+	go run .
+
 build-remote-world-pop:
 	@mkdir -p ./world-pop/temp
 	@ORIGINAL_VERSION=$$(world-pop -v | cut -d' ' -f3) ; \
@@ -22,7 +27,6 @@ reset-versions:
 		--data-binary @./world-pop/temp/world-pop \
 		http://localhost:4040/updater/upload
 	@rm -rf ./world-pop/temp/
-
 
 increase-remote-version:
 	@mkdir -p ./world-pop/temp
