@@ -161,13 +161,13 @@ func updateService(cmd *cli.Command, updaterClient *updater.UpdaterClient) error
 		updaterClient.Logger.Error("failed to ping updater service", "error", err)
 	}
 
-	isLatest, err := updaterClient.UpdateService()
+	updated, err := updaterClient.UpdateService()
 	if err != nil {
 		updaterClient.Logger.Error("failed to update service", "error", err)
 		return err
 	}
 
-	if isLatest {
+	if !updated {
 		fmt.Fprintf(cmd.Root().Writer, "No update required. %s service is running the latest version: %s\n", cmd.Root().Name, updaterClient.CurrentVersion)
 	} else {
 		fmt.Fprintf(cmd.Root().Writer, "%s service has been updated to the latest version: %s\n", cmd.Root().Name, updaterClient.CurrentVersion)
