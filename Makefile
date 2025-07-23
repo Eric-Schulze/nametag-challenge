@@ -1,17 +1,41 @@
 build-remote-world-pop:
+	@mkdir -p ./world-pop/temp
 	@ORIGINAL_VERSION=$$(world-pop -v | cut -d' ' -f3) ; \
-	go build -C world-pop -ldflags "-X main.version=$$ORIGINAL_VERSION" -o ../updater-server/data/
+	go build -C world-pop -ldflags "-X main.version=$$ORIGINAL_VERSION" -o ./temp/
+	@curl  --request POST \
+		-H "Content-Type: application/octet-stream" \
+		--data-binary @./world-pop/temp/world-pop \
+		http://localhost:4040/updater/upload
+	@rm -rf ./world-pop/temp/
 
 install-local-world-pop:
 	@ORIGINAL_VERSION=$$(world-pop -v | cut -d' ' -f3) ; \
 	go install -C world-pop -ldflags "-X main.version=$$ORIGINAL_VERSION" 
 
+reset-versions:
+	@go install -C world-pop -ldflags "-X main.version=1.0.0" 
+	@mkdir -p ./world-pop/temp
+	@ORIGINAL_VERSION=$$(world-pop -v | cut -d' ' -f3) ; \
+	go build -C world-pop -ldflags "-X main.version=$$ORIGINAL_VERSION" -o ./temp/
+	@curl  --request POST \
+		-H "Content-Type: application/octet-stream" \
+		--data-binary @./world-pop/temp/world-pop \
+		http://localhost:4040/updater/upload
+	@rm -rf ./world-pop/temp/
+
+
 increase-remote-version:
+	@mkdir -p ./world-pop/temp
 	@ORIGINAL_VERSION=$$(world-pop -v | cut -d' ' -f3) ; \
 	ORIGINAL_PATCH_VERSION=$$(echo "$$ORIGINAL_VERSION" | cut -d'.' -f3) ; \
 	NEW_PATCH_VERSION=$$(($$ORIGINAL_PATCH_VERSION+1)) ; \
 	NEW_VERSION=$$(echo "$$ORIGINAL_VERSION" | cut -d'.' -f1-2)".$$NEW_PATCH_VERSION" ; \
-	go build -C world-pop -ldflags "-X main.version=$$NEW_VERSION" -o ../updater-server/data/
+	go build -C world-pop -ldflags "-X main.version=$$NEW_VERSION" -o ./temp/
+	@curl  --request POST \
+		-H "Content-Type: application/octet-stream" \
+		--data-binary @./world-pop/temp/world-pop \
+		http://localhost:4040/updater/upload
+	@rm -rf ./world-pop/temp/
 
 toggle-logging:
 	@ORIGINAL_VALUE=$$(cat ./world-pop/internal/init/config.yaml | grep enable_logging | cut -d':' -f2 | sed 's/[[:space:]]//g') ; \

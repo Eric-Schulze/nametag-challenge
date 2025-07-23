@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"world-pop/internal/data"
+	"world-pop/internal/common/models"
 	"world-pop/internal/updater"
 
 	altsrc "github.com/urfave/cli-altsrc/v3"
@@ -11,7 +12,7 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-func BuildCommand(ctx context.Context, args []string, settingFilePath string, dataManager *data.CountryDataManager, updaterClient *updater.UpdaterClient) *cli.Command {
+func BuildCommand(ctx context.Context, args []string, settings models.Settings, dataManager *data.CountryDataManager, updaterClient *updater.UpdaterClient) *cli.Command {
 	var countryNameOrCode string
 	var dataFilePath string
 
@@ -36,6 +37,12 @@ func BuildCommand(ctx context.Context, args []string, settingFilePath string, da
 				SkipFlagParsing: false,
 				HideHelp:        false,
 				Hidden:          false,
+				Before: func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
+					if settings.AutoUpdate {
+						return nil, updateService(cmd, updaterClient)
+					}
+					return nil, nil
+				},
 				Action: func(ctx context.Context, cmd *cli.Command) error {
 					cmd.FullName()
 
@@ -124,23 +131,7 @@ func BuildCommand(ctx context.Context, args []string, settingFilePath string, da
 					return nil, nil
 				},
 				Action: func(ctx context.Context, cmd *cli.Command) error {
-					if success, err := updaterClient.Ping(); err != nil || !success {
-						updaterClient.Logger.Error("failed to ping updater service", "error", err)
-					}
-
-					isLatest, err := updaterClient.UpdateService()
-					if err != nil {
-						updaterClient.Logger.Error("failed to update service", "error", err)
-						return err
-					}
-
-					if isLatest {
-						fmt.Fprintf(cmd.Root().Writer, "No update required. %s service is running the latest version: %s\n", cmd.Root().Name, updaterClient.CurrentVersion)
-					} else {
-						fmt.Fprintf(cmd.Root().Writer, "%s service has been updated to the latest version: %s\n", cmd.Root().Name, updaterClient.CurrentVersion)
-					}
-
-					return nil
+					return updateService(cmd, updaterClient)
 				},
 			},
 		},
@@ -150,7 +141,7 @@ func BuildCommand(ctx context.Context, args []string, settingFilePath string, da
 				Aliases:     []string{"d"},
 				Usage:       "file path to the world population data",
 				Destination: &dataFilePath,
-				Sources:     cli.NewValueSourceChain(yaml.YAML("data_file_path", altsrc.StringSourcer(settingFilePath))),
+				Sources:     cli.NewValueSourceChain(yaml.YAML("data_file_path", altsrc.StringSourcer(settings.SettingFilePath))),
 			},
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
@@ -163,4 +154,24 @@ func BuildCommand(ctx context.Context, args []string, settingFilePath string, da
 	}
 
 	return cmd
+}
+
+func updateService(cmd *cli.Command, updaterClient *updater.UpdaterClient) error {
+	if success, err := updaterClient.Ping(); err != nil || !success {
+		updaterClient.Logger.Error("failed to ping updater service", "error", err)
+	}
+
+	isLatest, err := updaterClient.UpdateService()
+	if err != nil {
+		updaterClient.Logger.Error("failed to update service", "error", err)
+		return err
+	}
+
+	if isLatest {
+		fmt.Fprintf(cmd.Root().Writer, "No update required. %s service is running the latest version: %s\n", cmd.Root().Name, updaterClient.CurrentVersion)
+	} else {
+		fmt.Fprintf(cmd.Root().Writer, "%s service has been updated to the latest version: %s\n", cmd.Root().Name, updaterClient.CurrentVersion)
+	}
+
+	return nil
 }

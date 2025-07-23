@@ -1,12 +1,13 @@
 package updater
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
 	"world-pop/internal/common/logger"
 
-	"github.com/sanbornm/go-selfupdate/selfupdate"
+	"github.com/fynelabs/selfupdate"
 )
 
 type UpdaterClient struct {
@@ -74,6 +75,31 @@ func (client *UpdaterClient) IsLatestVersionCurrentlyInstalled() (bool, string, 
 	return false, latestVersion, nil
 }
 
+func (client *UpdaterClient) GetRemoteChecksum() (string, error) {
+	checksumUrl := fmt.Sprintf("%s/updater/checksum?service-name=%s", client.BaseUrl, SERVICE_NAME)
+	client.Logger.Info("Fetching remote checksum from", "url", checksumUrl)
+
+	resp, err := http.Get(checksumUrl)
+	if err != nil {
+		client.Logger.Error("error fetching remote checksum", "error", err)
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		client.Logger.Error("error fetching remote checksum", "status", resp.Status)
+		return "", fmt.Errorf("error fetching remote checksum: %s", resp.Status)
+	}
+
+	checksum, err := io.ReadAll(resp.Body)
+	if err != nil {
+		client.Logger.Error("Error reading response body: %v", err)
+		return "", err
+	}
+
+	return string(checksum), nil
+}
+
 func (client *UpdaterClient) UpdateService() (bool, error) {
 	client.Logger.Info("Updating service to latest version", "currentVersion", client.CurrentVersion)
 
@@ -89,22 +115,37 @@ func (client *UpdaterClient) UpdateService() (bool, error) {
 	}
 
 	client.Logger.Info("Service is not at the latest version", "Current Version", client.CurrentVersion, "Latest Version", latestVersion)
-
-	var updater = &selfupdate.Updater{
-		CurrentVersion: client.CurrentVersion,
-		ApiURL:         fmt.Sprintf("%s/data/", client.BaseUrl),
-		BinURL:         fmt.Sprintf("%s/data/", client.BaseUrl),
-		DiffURL:        fmt.Sprintf("%s/data/", client.BaseUrl),
-		Dir:            "./data/",
-		CmdName:        "world-pop",
-		ForceCheck:		true,
-	}
-
-	if err = updater.BackgroundRun(); err != nil {
+	
+	checksumBase64, err := client.GetRemoteChecksum()
+	if err != nil {
+		client.Logger.Error("error retrieving remote checksum", "error", err)
 		return false, err
 	}
 
-	client.CurrentVersion = updater.Info.Version
+	checksum, err := base64.StdEncoding.DecodeString(checksumBase64)
+	if err != nil { 
+		client.Logger.Error("error decoding remote checksum", "error", err)
+		return false, err
+	}
+
+	binaryUrl := fmt.Sprintf("%s/data/%s/%s", client.BaseUrl, SERVICE_NAME, SERVICE_NAME)
+	resp, err := http.Get(binaryUrl)
+    if err != nil {
+		client.Logger.Error("error downloading lastest version", "error", err)
+		return false, err
+    }
+    defer resp.Body.Close()
+	
+    err = selfupdate.Apply(resp.Body, selfupdate.Options{
+		TargetPath: "",
+		Checksum: checksum,
+	})
+    if err != nil {
+		client.Logger.Error("error applying update", "error", err)
+		return false, err
+    }
+
+	client.CurrentVersion = latestVersion
 
 	client.Logger.Info("Service has been updated to the latest version", "Current Version", client.CurrentVersion)
 

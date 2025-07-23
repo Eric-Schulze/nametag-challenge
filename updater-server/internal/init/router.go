@@ -1,6 +1,7 @@
 package init
 
 import (
+	"net/http"
 	"updater-server/api"
 	"updater-server/internal/common/logger"
 
@@ -12,6 +13,9 @@ func initRouter(logger logger.Logger, updaterHandler api.UpdaterHandler) *chi.Mu
 	router := chi.NewRouter()
 
 	router.Use(middleware.Heartbeat("/ping"))
+	
+	router.Handle("/data/*", http.StripPrefix("/data/world-pop/", http.FileServer(http.Dir("./data"))))
+
 
 	if updaterHandler == (api.UpdaterHandler{}) {
 		logger.Error("updaterHandler does not implement UpdaterHandler interface")

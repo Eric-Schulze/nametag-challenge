@@ -9,7 +9,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 )
 
-require (
-	github.com/kr/binarydist v0.1.0 // indirect
-	github.com/sanbornm/go-selfupdate v0.0.0-20230714125711-e1c03e3d6ac7
-)
+require github.com/fynelabs/selfupdate v0.2.1

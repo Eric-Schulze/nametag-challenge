@@ -1,6 +1,6 @@
   data_file_path: "./internal/data/world_population.csv"
   minimum_log_level: 0  # 0 = Debug, 1 = Info, 2 = Warn, 3 = Error
   updater_server_url: "http://localhost:4040"  # URL of the updater server
-  enable_logging: false
-  auto_update: false # check for and auto update on every command
+  enable_logging: true
+  auto_update: true # check for and auto update on every command
 
